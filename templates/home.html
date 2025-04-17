@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Sentiment Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #0A192F;
+            color: #00E5FF;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        h1 {
+            color: #00E5FF;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00E5FF;
+        }
+        .center-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 20vh;
+        }
+        .form-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        input {
+            width: 250px;
+            background-color: #112240;
+            color: #00E5FF;
+            text-align: center;
+            border: 2px solid #00E5FF;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px #00E5FF;
+            outline: none;
+        }
+        button {
+            background-color: #00E5FF;
+            color: black;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 0 15px #00E5FF;
+            transition: 0.3s ease-in-out;
+        }
+        button:hover {
+            background-color: #00BFFF;
+            box-shadow: 0 0 25px #00E5FF;
+            transform: scale(1.1);
+        }
+        #loading {
+            display: none;
+            font-size: 18px;
+            margin-top: 20px;
+            text-shadow: 0 0 10px #00E5FF;
+        }
+        #result {
+            display: none;
+            max-width: 900px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+            padding-top: 20px;
+        }
+        .details {
+            width: 45%;
+            text-align: left;
+        }
+        .chart-container {
+            width: 50%;
+        }
+        canvas {
+            background-color: transparent;
+            border-radius: 10px;
+        }
+    </style>
+    <script>
+        function showLoading() {
+            document.getElementById("loading").style.display = "block";
+            document.getElementById("result").style.display = "none";
+        }
+
+        function analyzePost(event) {
+            event.preventDefault();
+            showLoading();
+
+            let shortcode = document.getElementById("shortcode").value;
+            fetch("/", {
+                method: "POST",
+                body: new URLSearchParams({ shortcode: shortcode }),
+                headers: { "Content-Type": "application/x-www-form-urlencoded" }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("result").style.display = "flex";
+
+                document.getElementById("postDescription").innerText = data.post_description || "No Description Available";
+                document.getElementById("totalComments").innerText = data.total_comments;
+                document.getElementById("positiveComments").innerText = data.positive;
+                document.getElementById("neutralComments").innerText = data.neutral;
+                document.getElementById("negativeComments").innerText = data.negative;
+
+                let ctx = document.getElementById("sentimentChart").getContext("2d");
+                new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: ["Positive", "Neutral", "Negative"],
+                        datasets: [{
+                            label: "Number of Comments",
+                            data: [data.positive, data.neutral, data.negative],
+                            backgroundColor: ["#00E5FF", "gray", "#FF4500"]
+                        }]
+                    },
+                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                });
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    </script>
+</head>
+<body>
+    <h1>Instagram Post Sentiment Analysis</h1>
+
+    <div class="center-container">
+        <form class="form-container" onsubmit="analyzePost(event)">
+            <label>Enter Instagram Shortcode:</label>
+            <input type="text" id="shortcode" required>
+            <button type="submit">Analyze</button>
+        </form>
+    </div>
+
+    <p id="loading">Processing... Please wait.</p>
+
+    <div id="result">
+        <div class="details">
+            <h2>Post Description:</h2>
+            <p id="postDescription"></p>
+
+            <h2>Comment Statistics:</h2>
+            <ul>
+                <li>Total Comments: <span id="totalComments"></span></li>
+                <li>Positive Comments: <span id="positiveComments"></span></li>
+                <li>Neutral Comments: <span id="neutralComments"></span></li>
+                <li>Negative Comments: <span id="negativeComments"></span></li>
+            </ul>
+        </div>
+
+        <div class="chart-container">
+            <h2>Sentiment Chart:</h2>
+            <canvas id="sentimentChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+</body>
+</html>
